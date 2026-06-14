@@ -1,6 +1,7 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 import EditIcon from "@mui/icons-material/Edit"
 import EventIcon from "@mui/icons-material/Event"
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline"
 import GroupAddIcon from "@mui/icons-material/GroupAdd"
 import LocationOnIcon from "@mui/icons-material/LocationOn"
 import PeopleIcon from "@mui/icons-material/People"
@@ -15,6 +16,7 @@ import {
   Chip,
   CircularProgress,
   Divider,
+  IconButton,
   List,
   ListItem,
   ListItemAvatar,
@@ -25,17 +27,23 @@ import {
 import { useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { apiErrorMessage } from "../api/client"
-import { useCreateInvitations, useEvent, useInvitations } from "../api/hooks"
+import { useCancelInvitation, useCreateInvitations, useEvent, useInvitations } from "../api/hooks"
 import ParticipantPickerDialog from "../components/ParticipantPickerDialog"
 import { formatDate } from "../utils/format"
 
 const statusColors: Record<string, string> = {
   PENDING: "#b45309",
+  YES: "#15803d",
+  SELF: "#2563eb",
+  NO: "#b91c1c",
   ACCEPTED: "#15803d",
   DECLINED: "#b91c1c",
 }
 const statusBg: Record<string, string> = {
   PENDING: "#fef3c7",
+  YES: "#dcfce7",
+  SELF: "#dbeafe",
+  NO: "#fee2e2",
   ACCEPTED: "#dcfce7",
   DECLINED: "#fee2e2",
 }
@@ -61,11 +69,23 @@ export default function EventDetailPage() {
   const { data: event, isLoading, isError, error } = useEvent(id)
   const { data: invitations, isLoading: loadingInvites } = useInvitations(id)
   const createInvitations = useCreateInvitations(id ?? "")
+  const cancelInvitation = useCancelInvitation(id ?? "")
 
   const [pickerOpen, setPickerOpen] = useState(false)
   const [inviteError, setInviteError] = useState<string | null>(null)
 
   const invitedIds = (invitations ?? []).map((i) => i.participant.id)
+  const invitationCounts = (invitations ?? []).reduce(
+    (acc, invitation) => {
+      const key = invitation.status === "ACCEPTED" ? "YES" : invitation.status
+      if (key === "PENDING") acc.pending += 1
+      if (key === "YES") acc.yes += 1
+      if (key === "SELF") acc.self += 1
+      if (key === "NO") acc.no += 1
+      return acc
+    },
+    { pending: 0, yes: 0, self: 0, no: 0 },
+  )
 
   async function handleInvite(participantIds: string[]) {
     setInviteError(null)
@@ -74,6 +94,15 @@ export default function EventDetailPage() {
       setPickerOpen(false)
     } catch (err) {
       setInviteError(apiErrorMessage(err, "Could not send invitations"))
+    }
+  }
+
+  async function handleCancelInvitation(invitationId: string) {
+    setInviteError(null)
+    try {
+      await cancelInvitation.mutateAsync(invitationId)
+    } catch (err) {
+      setInviteError(apiErrorMessage(err, "Could not cancel invitation"))
     }
   }
 
@@ -190,7 +219,7 @@ export default function EventDetailPage() {
                   startIcon={<GroupAddIcon />}
                   onClick={() => setPickerOpen(true)}
                 >
-                  Invite
+                  Invite Participants
                 </Button>
               </Stack>
 
@@ -199,6 +228,22 @@ export default function EventDetailPage() {
                   {inviteError}
                 </Alert>
               )}
+
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap mb={2}>
+                {[
+                  { label: "Pending", value: invitationCounts.pending },
+                  { label: "Yes", value: invitationCounts.yes },
+                  { label: "Self", value: invitationCounts.self },
+                  { label: "No", value: invitationCounts.no },
+                ].map((item) => (
+                  <Chip
+                    key={item.label}
+                    label={`${item.label}: ${item.value}`}
+                    size="small"
+                    sx={{ bgcolor: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe" }}
+                  />
+                ))}
+              </Stack>
 
               {loadingInvites ? (
                 <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
@@ -211,15 +256,26 @@ export default function EventDetailPage() {
                       key={inv.id}
                       divider
                       secondaryAction={
-                        <Chip
-                          size="small"
-                          label={inv.status}
-                          sx={{
-                            color: statusColors[inv.status],
-                            bgcolor: statusBg[inv.status],
-                            fontWeight: 600,
-                          }}
-                        />
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Chip
+                            size="small"
+                            label={inv.status}
+                            sx={{
+                              color: statusColors[inv.status],
+                              bgcolor: statusBg[inv.status],
+                              fontWeight: 600,
+                            }}
+                          />
+                          <IconButton
+                            edge="end"
+                            aria-label="cancel invitation"
+                            onClick={() => handleCancelInvitation(inv.id)}
+                            disabled={cancelInvitation.isPending}
+                            sx={{ color: "#b91c1c" }}
+                          >
+                            <DeleteOutlineIcon fontSize="small" />
+                          </IconButton>
+                        </Stack>
                       }
                     >
                       <ListItemAvatar>
@@ -238,7 +294,7 @@ export default function EventDetailPage() {
                 <Box sx={{ textAlign: "center", py: 5 }}>
                   <PeopleIcon sx={{ fontSize: 44, color: "#cbd5e1", mb: 1 }} />
                   <Typography color="text.secondary">
-                    No participants invited yet. Click &quot;Invite&quot; to add some.
+                    No participants invited yet. Click “Invite Participants” to select people and send SMS invitations.
                   </Typography>
                 </Box>
               )}

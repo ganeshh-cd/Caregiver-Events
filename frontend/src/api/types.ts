@@ -53,7 +53,9 @@ export interface DashboardStats {
 
 export interface Invitation {
   id: string
-  status: "PENDING" | "ACCEPTED" | "DECLINED"
+  status: "PENDING" | "ACCEPTED" | "DECLINED" | "YES" | "SELF" | "NO"
+  response?: string | null
+  responseDate?: string | null
   participant: {
     id: string
     name: string
@@ -61,4 +63,13 @@ export interface Invitation {
     phone: string
     city: string
   }
+}
+
+export interface InvitationResponseItem {
+  id: string
+  participantName: string
+  phone: string
+  eventName: string
+  response: string
+  responseDate?: string | null
 }

@@ -38,8 +38,8 @@ function reviveExtendedJson(value: any): any {
   return value
 }
 
-function loadParticipants(): any[] {
-  const raw = readFileSync(join(__dirname, "data", "participants.json"), "utf-8")
+function loadUsersFromFile(filePath: string): any[] {
+  const raw = readFileSync(filePath, "utf-8")
   const docs = reviveExtendedJson(JSON.parse(raw)) as any[]
   return docs.map((doc) => {
     // Drop the original _id so a fresh ObjectId is generated, and let the
@@ -59,9 +59,27 @@ async function seed() {
   if (existingParticipants > 0) {
     console.log(`[seed] ${existingParticipants} participants already exist, skipping import`)
   } else {
-    const participants = loadParticipants()
+    const participants = loadUsersFromFile(join(__dirname, "data", "participants.json"))
     await User.insertMany(participants, { ordered: false })
     console.log(`[seed] Imported ${participants.length} participants`)
+  }
+
+  // --- QA users export (users module) ---
+  const qaUsersFile = join(__dirname, "..", "qa_caregiver.users.json")
+  const qaUsers = loadUsersFromFile(qaUsersFile)
+  if (qaUsers.length > 0) {
+    const bulkOps = qaUsers.map((doc) => ({
+      updateOne: {
+        filter: { $or: [{ email: doc.email }, { userId: doc.userId }] },
+        update: { $set: doc },
+        upsert: true,
+      },
+    }))
+
+    const writeResult = await User.bulkWrite(bulkOps, { ordered: false })
+    console.log(
+      `[seed] Imported/updated ${writeResult.upsertedCount + writeResult.modifiedCount} QA users from ${qaUsersFile}`,
+    )
   }
 
   // --- Default admin (roleId = 1) ---

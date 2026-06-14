@@ -6,6 +6,7 @@ import DashboardPage from "./pages/DashboardPage"
 import EventDetailPage from "./pages/EventDetailPage"
 import EventFormPage from "./pages/EventFormPage"
 import EventListPage from "./pages/EventListPage"
+import InvitationResponsesPage from "./pages/InvitationResponsesPage"
 import LoginPage from "./pages/LoginPage"
 import RegisterPage from "./pages/RegisterPage"
 
@@ -62,6 +63,7 @@ export default function App() {
         <Route path="/" element={<DashboardPage />} />
         <Route path="/events" element={<EventListPage />} />
         <Route path="/events/new" element={<EventFormPage mode="create" />} />
+        <Route path="/invitations/responses" element={<InvitationResponsesPage />} />
         <Route path="/events/:id" element={<EventDetailPage />} />
         <Route path="/events/:id/edit" element={<EventFormPage mode="edit" />} />
       </Route>

@@ -8,6 +8,7 @@ const app = express()
 
 app.use(cors({ origin: env.CLIENT_ORIGIN === "*" ? true : env.CLIENT_ORIGIN.split(",") }))
 app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", service: "eem-backend", db: isDbConnected() ? "connected" : "connecting" })
@@ -42,7 +43,22 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
 
 // Start listening immediately so the API is reachable; connect to MongoDB in
 // the background with retries.
-app.listen(env.PORT, () => {
-  console.log(`[server] API listening on http://localhost:${env.PORT}`)
-})
+function startServer(port: number) {
+  const server = app.listen(port, () => {
+    console.log(`[server] API listening on http://localhost:${port}`)
+  })
+
+  server.on("error", (err: NodeJS.ErrnoException) => {
+    if (err.code === "EADDRINUSE") {
+      console.warn(`[server] Port ${port} is already in use. Trying ${port + 1} instead.`)
+      server.close(() => startServer(port + 1))
+      return
+    }
+
+    console.error("[server] Failed to start API", err)
+    process.exit(1)
+  })
+}
+
+startServer(env.PORT)
 void connectWithRetry()

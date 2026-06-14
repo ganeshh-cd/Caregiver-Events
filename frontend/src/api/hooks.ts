@@ -5,6 +5,7 @@ import type {
   EventInput,
   EventItem,
   Invitation,
+  InvitationResponseItem,
   ParticipantSearchResult,
 } from "./types"
 
@@ -104,5 +105,36 @@ export function useCreateInvitations(eventId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["invitations", eventId] })
     },
+  })
+}
+
+export function useCancelInvitation(eventId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (invitationId: string) =>
+      (await api.delete(`/events/${eventId}/invitations/${invitationId}`)).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["invitations", eventId] })
+    },
+  })
+}
+
+export function useInvitationResponses(params: {
+  eventId?: string
+  response?: string
+  search?: string
+}) {
+  return useQuery({
+    queryKey: ["invitation-responses", params],
+    queryFn: async () =>
+      (
+        await api.get<{ invitations: InvitationResponseItem[] }>('/invitations/responses', {
+          params: {
+            eventId: params.eventId || undefined,
+            response: params.response || undefined,
+            search: params.search || undefined,
+          },
+        })
+      ).data.invitations,
   })
 }

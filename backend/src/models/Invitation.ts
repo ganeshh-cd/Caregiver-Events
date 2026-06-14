@@ -4,6 +4,15 @@ export const INVITATION_STATUS = {
   PENDING: "PENDING",
   ACCEPTED: "ACCEPTED",
   DECLINED: "DECLINED",
+  YES: "YES",
+  SELF: "SELF",
+  NO: "NO",
+} as const
+
+export const INVITATION_RESPONSE = {
+  YES: "YES",
+  SELF: "SELF",
+  NO: "NO",
 } as const
 
 const invitationSchema = new Schema(
@@ -15,6 +24,12 @@ const invitationSchema = new Schema(
       enum: Object.values(INVITATION_STATUS),
       default: INVITATION_STATUS.PENDING,
     },
+    response: {
+      type: String,
+      enum: Object.values(INVITATION_RESPONSE),
+      default: undefined,
+    },
+    responseDate: { type: Date, default: null },
     invitedBy: { type: Schema.Types.ObjectId, ref: "User" },
   },
   { timestamps: true, collection: "invitations" },

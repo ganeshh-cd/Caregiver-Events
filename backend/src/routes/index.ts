@@ -9,14 +9,20 @@ import {
   updateEvent,
 } from "../controllers/eventController.js"
 import {
+  cancelInvitation,
   createInvitations,
+  listInvitationResponses,
   listInvitations,
 } from "../controllers/invitationController.js"
+import { handleTwilioWebhook } from "../controllers/twilioController.js"
 import { searchParticipants } from "../controllers/participantController.js"
 import { requireAdmin, requireAuth } from "../middleware/auth.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
 
 const router = Router()
+
+// --- Twilio webhook (public) ---
+router.post("/twilio/webhook", asyncHandler(handleTwilioWebhook))
 
 // --- Auth ---
 router.post("/auth/login", asyncHandler(login))
@@ -42,5 +48,7 @@ router.get("/participants", asyncHandler(searchParticipants))
 // --- Invitations ---
 router.get("/events/:id/invitations", asyncHandler(listInvitations))
 router.post("/events/:id/invitations", asyncHandler(createInvitations))
+router.delete("/events/:eventId/invitations/:invitationId", asyncHandler(cancelInvitation))
+router.get("/invitations/responses", asyncHandler(listInvitationResponses))
 
 export default router

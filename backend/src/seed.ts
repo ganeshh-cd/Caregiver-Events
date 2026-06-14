@@ -3,7 +3,7 @@ import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import bcrypt from "bcryptjs"
 import mongoose from "mongoose"
-import { connectDB } from "./config/db.js"
+import { env } from "./config/env.js"
 import { ROLE, USER_STATUS, User } from "./models/User.js"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -26,7 +26,9 @@ function loadParticipants(): any[] {
 }
 
 async function seed() {
-  await connectDB()
+  mongoose.set("strictQuery", true)
+  await mongoose.connect(env.MONGODB_URI, { serverSelectionTimeoutMS: 10000 })
+  console.log("[seed] Connected to MongoDB")
 
   // --- Participants (roleId = 4) ---
   const existingParticipants = await User.countDocuments({ roleId: ROLE.PARTICIPANT })

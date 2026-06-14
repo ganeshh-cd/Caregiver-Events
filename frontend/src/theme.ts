@@ -1,4 +1,6 @@
 import { createTheme } from "@mui/material/styles"
+// Registers the `MuiDataGrid` key on the MUI theme `components` map.
+import type {} from "@mui/x-data-grid/themeAugmentation"
 
 /**
  * Theme derived from the existing platform theme:

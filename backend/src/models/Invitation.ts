@@ -1,0 +1,31 @@
+import mongoose, { Schema, type InferSchemaType } from "mongoose"
+
+export const INVITATION_STATUS = {
+  PENDING: "PENDING",
+  ACCEPTED: "ACCEPTED",
+  DECLINED: "DECLINED",
+} as const
+
+const invitationSchema = new Schema(
+  {
+    eventId: { type: Schema.Types.ObjectId, ref: "Event", required: true, index: true },
+    participantId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    status: {
+      type: String,
+      enum: Object.values(INVITATION_STATUS),
+      default: INVITATION_STATUS.PENDING,
+    },
+    invitedBy: { type: Schema.Types.ObjectId, ref: "User" },
+  },
+  { timestamps: true, collection: "invitations" },
+)
+
+// A participant can only be invited to a given event once.
+invitationSchema.index({ eventId: 1, participantId: 1 }, { unique: true })
+
+export type InvitationDoc = InferSchemaType<typeof invitationSchema> & {
+  _id: mongoose.Types.ObjectId
+}
+
+export const Invitation =
+  mongoose.models.Invitation || mongoose.model("Invitation", invitationSchema)

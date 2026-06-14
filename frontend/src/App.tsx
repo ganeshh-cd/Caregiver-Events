@@ -8,6 +8,7 @@ import EventFormPage from "./pages/EventFormPage"
 import EventListPage from "./pages/EventListPage"
 import LoginPage from "./pages/LoginPage"
 import RegisterPage from "./pages/RegisterPage"
+import ResponsesPage from "./pages/ResponsesPage"
 
 function FullScreenLoader() {
   return (
@@ -64,6 +65,7 @@ export default function App() {
         <Route path="/events/new" element={<EventFormPage mode="create" />} />
         <Route path="/events/:id" element={<EventDetailPage />} />
         <Route path="/events/:id/edit" element={<EventFormPage mode="edit" />} />
+        <Route path="/responses" element={<ResponsesPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

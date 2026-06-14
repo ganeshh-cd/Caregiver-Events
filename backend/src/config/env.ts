@@ -36,4 +36,9 @@ export const env = {
   PORT: Number(process.env.PORT ?? 4000),
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN ?? "7d",
   CLIENT_ORIGIN: process.env.CLIENT_ORIGIN ?? "*",
+  // Twilio (Phase 2). Optional: when unset, the SMS service runs in
+  // simulation mode and logs messages instead of sending them.
+  TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID ?? "",
+  TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN ?? "",
+  TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER ?? "",
 }

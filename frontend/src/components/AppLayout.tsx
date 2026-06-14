@@ -2,6 +2,7 @@ import CalendarMonthIcon from "@mui/icons-material/CalendarMonth"
 import DashboardIcon from "@mui/icons-material/Dashboard"
 import EventIcon from "@mui/icons-material/Event"
 import LogoutIcon from "@mui/icons-material/Logout"
+import MarkChatReadIcon from "@mui/icons-material/MarkChatRead"
 import {
   AppBar,
   Avatar,
@@ -23,6 +24,7 @@ const DRAWER_WIDTH = 248
 const NAV_ITEMS = [
   { label: "Dashboard", to: "/", icon: <DashboardIcon /> },
   { label: "Events", to: "/events", icon: <EventIcon /> },
+  { label: "Responses", to: "/responses", icon: <MarkChatReadIcon /> },
 ]
 
 export default function AppLayout() {

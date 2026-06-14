@@ -29,15 +29,23 @@ import { useCreateInvitations, useEvent, useInvitations } from "../api/hooks"
 import ParticipantPickerDialog from "../components/ParticipantPickerDialog"
 import { formatDate } from "../utils/format"
 
-const statusColors: Record<string, string> = {
+const responseColors: Record<string, string> = {
   PENDING: "#b45309",
-  ACCEPTED: "#15803d",
-  DECLINED: "#b91c1c",
+  YES: "#15803d",
+  SELF: "#1d4ed8",
+  NO: "#b91c1c",
 }
-const statusBg: Record<string, string> = {
+const responseBg: Record<string, string> = {
   PENDING: "#fef3c7",
-  ACCEPTED: "#dcfce7",
-  DECLINED: "#fee2e2",
+  YES: "#dcfce7",
+  SELF: "#dbeafe",
+  NO: "#fee2e2",
+}
+const responseLabels: Record<string, string> = {
+  PENDING: "Pending",
+  YES: "Yes (with caregiver)",
+  SELF: "Self",
+  NO: "No",
 }
 
 function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
@@ -59,13 +67,15 @@ export default function EventDetailPage() {
   const navigate = useNavigate()
 
   const { data: event, isLoading, isError, error } = useEvent(id)
-  const { data: invitations, isLoading: loadingInvites } = useInvitations(id)
+  const { data: invitesData, isLoading: loadingInvites } = useInvitations(id)
   const createInvitations = useCreateInvitations(id ?? "")
 
   const [pickerOpen, setPickerOpen] = useState(false)
   const [inviteError, setInviteError] = useState<string | null>(null)
 
-  const invitedIds = (invitations ?? []).map((i) => i.participant.id)
+  const invitations = invitesData?.invitations ?? []
+  const counts = invitesData?.counts ?? { total: 0, PENDING: 0, YES: 0, SELF: 0, NO: 0 }
+  const invitedIds = invitations.map((i) => i.participant.id)
 
   async function handleInvite(participantIds: string[]) {
     setInviteError(null)
@@ -194,6 +204,36 @@ export default function EventDetailPage() {
                 </Button>
               </Stack>
 
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(4, 1fr)" },
+                  gap: 1.5,
+                  mb: 2,
+                }}
+              >
+                {(["PENDING", "YES", "SELF", "NO"] as const).map((key) => (
+                  <Box
+                    key={key}
+                    sx={{
+                      borderRadius: 2,
+                      p: 1.5,
+                      textAlign: "center",
+                      bgcolor: responseBg[key],
+                      border: "1px solid",
+                      borderColor: "rgba(0,0,0,0.04)",
+                    }}
+                  >
+                    <Typography variant="h5" fontWeight={700} sx={{ color: responseColors[key] }}>
+                      {counts[key]}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: responseColors[key], fontWeight: 600 }}>
+                      {responseLabels[key]}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+
               {inviteError && (
                 <Alert severity="error" sx={{ mb: 2 }}>
                   {inviteError}
@@ -213,10 +253,10 @@ export default function EventDetailPage() {
                       secondaryAction={
                         <Chip
                           size="small"
-                          label={inv.status}
+                          label={responseLabels[inv.response] ?? inv.response}
                           sx={{
-                            color: statusColors[inv.status],
-                            bgcolor: statusBg[inv.status],
+                            color: responseColors[inv.response],
+                            bgcolor: responseBg[inv.response],
                             fontWeight: 600,
                           }}
                         />

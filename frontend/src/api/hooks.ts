@@ -4,8 +4,10 @@ import type {
   DashboardStats,
   EventInput,
   EventItem,
-  Invitation,
+  InvitationsResult,
   ParticipantSearchResult,
+  ResponseFilters,
+  ResponseRow,
 } from "./types"
 
 // --- Dashboard ---
@@ -91,8 +93,7 @@ export function useInvitations(eventId: string | undefined) {
     queryKey: ["invitations", eventId],
     enabled: Boolean(eventId),
     queryFn: async () =>
-      (await api.get<{ invitations: Invitation[] }>(`/events/${eventId}/invitations`)).data
-        .invitations,
+      (await api.get<InvitationsResult>(`/events/${eventId}/invitations`)).data,
   })
 }
 
@@ -103,6 +104,24 @@ export function useCreateInvitations(eventId: string) {
       (await api.post(`/events/${eventId}/invitations`, { participantIds })).data,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["invitations", eventId] })
+      qc.invalidateQueries({ queryKey: ["responses"] })
     },
+  })
+}
+
+// --- Invitation responses (Phase 2) ---
+export function useResponses(filters: ResponseFilters) {
+  return useQuery({
+    queryKey: ["responses", filters],
+    queryFn: async () =>
+      (
+        await api.get<{ responses: ResponseRow[] }>("/responses", {
+          params: {
+            eventId: filters.eventId || undefined,
+            response: filters.response || undefined,
+            search: filters.search || undefined,
+          },
+        })
+      ).data.responses,
   })
 }

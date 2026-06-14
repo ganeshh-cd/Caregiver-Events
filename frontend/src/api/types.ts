@@ -51,9 +51,13 @@ export interface DashboardStats {
   upcomingEvents: number
 }
 
+export type InvitationResponse = "PENDING" | "YES" | "SELF" | "NO"
+
 export interface Invitation {
   id: string
   status: "PENDING" | "ACCEPTED" | "DECLINED"
+  response: InvitationResponse
+  responseDate: string | null
   participant: {
     id: string
     name: string
@@ -61,4 +65,33 @@ export interface Invitation {
     phone: string
     city: string
   }
+}
+
+export interface InvitationCounts {
+  total: number
+  PENDING: number
+  YES: number
+  SELF: number
+  NO: number
+}
+
+export interface InvitationsResult {
+  invitations: Invitation[]
+  counts: InvitationCounts
+}
+
+export interface ResponseRow {
+  id: string
+  participantName: string
+  phone: string
+  eventId: string
+  eventName: string
+  response: InvitationResponse
+  responseDate: string | null
+}
+
+export interface ResponseFilters {
+  eventId?: string
+  response?: string
+  search?: string
 }

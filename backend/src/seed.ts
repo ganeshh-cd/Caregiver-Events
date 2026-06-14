@@ -15,12 +15,36 @@ const DEFAULT_ADMIN = {
   password: "Admin@123",
 }
 
+/**
+ * The export is MongoDB Extended JSON, so values look like
+ * `{ "$oid": "..." }` and `{ "$date": "..." }`. Mongoose can't cast those
+ * wrapper objects, so we recursively unwrap them into plain values.
+ */
+function reviveExtendedJson(value: any): any {
+  if (Array.isArray(value)) return value.map(reviveExtendedJson)
+  if (value && typeof value === "object") {
+    const keys = Object.keys(value)
+    if (keys.length === 1) {
+      if (keys[0] === "$oid") return String(value.$oid)
+      if (keys[0] === "$date") return new Date(value.$date)
+      if (keys[0] === "$numberInt") return Number(value.$numberInt)
+      if (keys[0] === "$numberLong") return Number(value.$numberLong)
+      if (keys[0] === "$numberDouble") return Number(value.$numberDouble)
+    }
+    const out: Record<string, any> = {}
+    for (const key of keys) out[key] = reviveExtendedJson(value[key])
+    return out
+  }
+  return value
+}
+
 function loadParticipants(): any[] {
   const raw = readFileSync(join(__dirname, "data", "participants.json"), "utf-8")
-  const docs = JSON.parse(raw) as any[]
+  const docs = reviveExtendedJson(JSON.parse(raw)) as any[]
   return docs.map((doc) => {
-    // Drop MongoDB extended-JSON _id so a fresh ObjectId is generated.
-    const { _id, ...rest } = doc
+    // Drop the original _id so a fresh ObjectId is generated, and let the
+    // schema's timestamps manage createdAt/updatedAt.
+    const { _id, createdAt, updatedAt, __v, ...rest } = doc
     return rest
   })
 }

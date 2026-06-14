@@ -7,10 +7,12 @@ import dotenv from "dotenv"
  * 2. The v0/Vercel sandbox shared env file, used as a fallback so the app
  *    runs out of the box inside this environment.
  *
- * dotenv does not override variables that are already set, so the local
- * `.env` always wins when present.
+ * The local `.env` is loaded with `override: true` so it always wins when
+ * present (the sandbox/Vercel runtime may already inject vars into the
+ * process environment). The shared sandbox file is then loaded as a
+ * non-overriding fallback so the app still runs when no local `.env` exists.
  */
-dotenv.config()
+dotenv.config({ override: true })
 
 const sandboxEnvPath = "/vercel/share/.env.project"
 if (fs.existsSync(sandboxEnvPath)) {

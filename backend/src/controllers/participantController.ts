@@ -28,23 +28,48 @@ export async function searchParticipants(req: Request, res: Response) {
     ]
   }
 
+  // A normalized lowercase name used purely for ordering, so records with a
+  // real name surface before the messier whitespace-only/blank legacy records.
+  const collation = { locale: "en", strength: 2 }
+
   const [docs, total] = await Promise.all([
-    User.find(filter)
-      .select("firstName middleName lastName preferredName email countryCode phoneNumber city state")
-      .sort({ firstName: 1, lastName: 1 })
-      .skip((page - 1) * pageSize)
-      .limit(pageSize)
-      .lean(),
+    User.aggregate([
+      { $match: filter },
+      {
+        $addFields: {
+          _sortName: {
+            $toLower: { $trim: { input: { $ifNull: ["$firstName", ""] } } },
+          },
+        },
+      },
+      {
+        $addFields: {
+          // Records with a real name sort first (0), blank ones last (1).
+          _hasName: { $cond: [{ $eq: ["$_sortName", ""] }, 1, 0] },
+        },
+      },
+      { $sort: { _hasName: 1, _sortName: 1, _id: 1 } },
+      { $skip: (page - 1) * pageSize },
+      { $limit: pageSize },
+    ]).collation(collation),
     User.countDocuments(filter),
   ])
 
-  const participants = docs.map((u: any) => ({
-    id: String(u._id),
-    name: [u.firstName, u.middleName, u.lastName].filter(Boolean).join(" ").trim() || u.preferredName || "—",
-    email: u.email ?? "",
-    phone: [u.countryCode, u.phoneNumber].filter(Boolean).join(" ").trim(),
-    city: u.city ?? "",
-  }))
+  const clean = (v: unknown) => String(v ?? "").trim()
+
+  const participants = docs.map((u: any) => {
+    const name =
+      [u.firstName, u.middleName, u.lastName].map(clean).filter(Boolean).join(" ") ||
+      clean(u.preferredName) ||
+      "—"
+    return {
+      id: String(u._id),
+      name,
+      email: clean(u.email),
+      phone: [clean(u.countryCode), clean(u.phoneNumber)].filter(Boolean).join(" "),
+      city: clean(u.city),
+    }
+  })
 
   return res.json({ participants, total, page, pageSize })
 }

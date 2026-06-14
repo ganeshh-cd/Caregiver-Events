@@ -14,12 +14,16 @@ function reply(res: Response, message: string) {
   res.type("text/xml").send(twiml.toString())
 }
 
-/** Map a raw SMS body to a supported response, or null if unrecognized. */
+/**
+ * Map a raw SMS body to a supported response, or null if unrecognized.
+ * Accepts the words YES/SELF/NO, single-letter aliases (Y/S/N), and the
+ * numeric aliases 1/2/3 for participants who find numbers easier to reply.
+ */
 function parseResponse(body: string): keyof typeof INVITATION_RESPONSE | null {
   const first = body.trim().toUpperCase().split(/\s+/)[0] ?? ""
-  if (first === "YES" || first === "Y") return "YES"
-  if (first === "SELF" || first === "S") return "SELF"
-  if (first === "NO" || first === "N") return "NO"
+  if (first === "YES" || first === "Y" || first === "1") return "YES"
+  if (first === "SELF" || first === "S" || first === "2") return "SELF"
+  if (first === "NO" || first === "N" || first === "3") return "NO"
   return null
 }
 

@@ -26,9 +26,9 @@ export function buildInvitationMessage({
     `Date: ${eventDate}`,
     "",
     "Reply with:",
-    "YES = Attending with my caregiver",
-    "SELF = Attending on my own",
-    "NO = Not attending",
+    "YES (or 1) = Attending with my caregiver",
+    "SELF (or 2) = Attending on my own",
+    "NO (or 3) = Not attending",
     "",
     "Thank you.",
   ].join("\n")
@@ -39,4 +39,4 @@ export const RESPONSE_CONFIRMATION_MESSAGE = "Thank you. Your response has been 
 
 /** Reply sent when we cannot interpret the incoming message. */
 export const UNRECOGNIZED_REPLY_MESSAGE =
-  "Sorry, we didn't understand your reply. Please reply with YES, SELF, or NO."
+  "Sorry, we didn't understand your reply. Please reply with YES (1), SELF (2), or NO (3)."

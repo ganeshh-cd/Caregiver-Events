@@ -34,7 +34,19 @@ app.use((err, _req, res, _next) => {
 });
 // Start listening immediately so the API is reachable; connect to MongoDB in
 // the background with retries.
-app.listen(env.PORT, () => {
-    console.log(`[server] API listening on http://localhost:${env.PORT}`);
-});
+function startServer(port) {
+    const server = app.listen(port, () => {
+        console.log(`[server] API listening on http://localhost:${port}`);
+    });
+    server.on("error", (err) => {
+        if (err.code === "EADDRINUSE") {
+            console.warn(`[server] Port ${port} is already in use. Trying ${port + 1} instead.`);
+            server.close(() => startServer(port + 1));
+            return;
+        }
+        console.error("[server] Failed to start API", err);
+        process.exit(1);
+    });
+}
+startServer(env.PORT);
 void connectWithRetry();

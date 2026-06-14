@@ -2,7 +2,7 @@ import { Router } from "express";
 import { login, me, register } from "../controllers/authController.js";
 import { getStats } from "../controllers/dashboardController.js";
 import { createEvent, deleteEvent, getEvent, listEvents, updateEvent, } from "../controllers/eventController.js";
-import { createInvitations, listInvitationResponses, listInvitations, } from "../controllers/invitationController.js";
+import { cancelInvitation, createInvitations, listInvitationResponses, listInvitations, } from "../controllers/invitationController.js";
 import { handleTwilioWebhook } from "../controllers/twilioController.js";
 import { searchParticipants } from "../controllers/participantController.js";
 import { requireAdmin, requireAuth } from "../middleware/auth.js";
@@ -29,5 +29,6 @@ router.get("/participants", asyncHandler(searchParticipants));
 // --- Invitations ---
 router.get("/events/:id/invitations", asyncHandler(listInvitations));
 router.post("/events/:id/invitations", asyncHandler(createInvitations));
+router.delete("/events/:eventId/invitations/:invitationId", asyncHandler(cancelInvitation));
 router.get("/invitations/responses", asyncHandler(listInvitationResponses));
 export default router;

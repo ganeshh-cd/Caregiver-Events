@@ -9,6 +9,7 @@ import {
   updateEvent,
 } from "../controllers/eventController.js"
 import {
+  cancelInvitation,
   createInvitations,
   listInvitationResponses,
   listInvitations,
@@ -47,6 +48,7 @@ router.get("/participants", asyncHandler(searchParticipants))
 // --- Invitations ---
 router.get("/events/:id/invitations", asyncHandler(listInvitations))
 router.post("/events/:id/invitations", asyncHandler(createInvitations))
+router.delete("/events/:eventId/invitations/:invitationId", asyncHandler(cancelInvitation))
 router.get("/invitations/responses", asyncHandler(listInvitationResponses))
 
 export default router

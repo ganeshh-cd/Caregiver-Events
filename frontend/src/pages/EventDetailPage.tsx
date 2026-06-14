@@ -1,6 +1,7 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 import EditIcon from "@mui/icons-material/Edit"
 import EventIcon from "@mui/icons-material/Event"
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline"
 import GroupAddIcon from "@mui/icons-material/GroupAdd"
 import LocationOnIcon from "@mui/icons-material/LocationOn"
 import PeopleIcon from "@mui/icons-material/People"
@@ -15,6 +16,7 @@ import {
   Chip,
   CircularProgress,
   Divider,
+  IconButton,
   List,
   ListItem,
   ListItemAvatar,
@@ -25,7 +27,7 @@ import {
 import { useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { apiErrorMessage } from "../api/client"
-import { useCreateInvitations, useEvent, useInvitations } from "../api/hooks"
+import { useCancelInvitation, useCreateInvitations, useEvent, useInvitations } from "../api/hooks"
 import ParticipantPickerDialog from "../components/ParticipantPickerDialog"
 import { formatDate } from "../utils/format"
 
@@ -67,6 +69,7 @@ export default function EventDetailPage() {
   const { data: event, isLoading, isError, error } = useEvent(id)
   const { data: invitations, isLoading: loadingInvites } = useInvitations(id)
   const createInvitations = useCreateInvitations(id ?? "")
+  const cancelInvitation = useCancelInvitation(id ?? "")
 
   const [pickerOpen, setPickerOpen] = useState(false)
   const [inviteError, setInviteError] = useState<string | null>(null)
@@ -91,6 +94,15 @@ export default function EventDetailPage() {
       setPickerOpen(false)
     } catch (err) {
       setInviteError(apiErrorMessage(err, "Could not send invitations"))
+    }
+  }
+
+  async function handleCancelInvitation(invitationId: string) {
+    setInviteError(null)
+    try {
+      await cancelInvitation.mutateAsync(invitationId)
+    } catch (err) {
+      setInviteError(apiErrorMessage(err, "Could not cancel invitation"))
     }
   }
 
@@ -244,15 +256,26 @@ export default function EventDetailPage() {
                       key={inv.id}
                       divider
                       secondaryAction={
-                        <Chip
-                          size="small"
-                          label={inv.status}
-                          sx={{
-                            color: statusColors[inv.status],
-                            bgcolor: statusBg[inv.status],
-                            fontWeight: 600,
-                          }}
-                        />
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Chip
+                            size="small"
+                            label={inv.status}
+                            sx={{
+                              color: statusColors[inv.status],
+                              bgcolor: statusBg[inv.status],
+                              fontWeight: 600,
+                            }}
+                          />
+                          <IconButton
+                            edge="end"
+                            aria-label="cancel invitation"
+                            onClick={() => handleCancelInvitation(inv.id)}
+                            disabled={cancelInvitation.isPending}
+                            sx={{ color: "#b91c1c" }}
+                          >
+                            <DeleteOutlineIcon fontSize="small" />
+                          </IconButton>
+                        </Stack>
                       }
                     >
                       <ListItemAvatar>

@@ -2,7 +2,12 @@ import type { Request, Response } from "express"
 import { Event } from "../models/Event.js"
 import { Invitation } from "../models/Invitation.js"
 import { User } from "../models/User.js"
-import { normalizePhone, RESPONSE_VALUES, sendConfirmationSms } from "../utils/twilio.js"
+import {
+  mapTwilioResponseToInvitationStatus,
+  normalizePhone,
+  RESPONSE_VALUES,
+  sendConfirmationSms,
+} from "../utils/twilio.js"
 
 function normalizeIncomingPhone(raw: string | undefined) {
   if (!raw) return ""
@@ -12,7 +17,10 @@ function normalizeIncomingPhone(raw: string | undefined) {
 export async function handleTwilioWebhook(req: Request, res: Response) {
   const body = req.body ?? {}
   const from = normalizeIncomingPhone(body.From || body.from)
-  const message = String(body.Body || body.body || "").trim().toUpperCase()
+  const rawMessage = String(body.Body || body.body || "").trim().toUpperCase()
+  const message = rawMessage.replace(/[^A-Z]/g, "")
+
+  console.log(`[twilio] received message from ${from}:\n${rawMessage}`)
 
   if (!from || !message) {
     return res.status(400).json({ message: "Missing sender or message body" })
@@ -20,9 +28,16 @@ export async function handleTwilioWebhook(req: Request, res: Response) {
 
   const users = await User.find({}).select("_id firstName lastName countryCode phoneNumber").lean()
   const participant = users.find((item: any) => {
-    const fullPhone = [item.countryCode, item.phoneNumber].filter(Boolean).join("").replace(/\D/g, "")
-    return normalizePhone(fullPhone) === from || normalizePhone(String(item.phoneNumber || "")) === from
+    const variants = new Set<string>([
+      normalizePhone(String(item.phoneNumber || "")),
+      normalizePhone([item.countryCode, item.phoneNumber].filter(Boolean).join("")),
+      normalizePhone(String(item.countryCode || "") + normalizePhone(String(item.phoneNumber || ""))),
+    ])
+
+    return variants.has(from)
   })
+
+  console.log(`[twilio] matched phone ${from} to participant ${participant?._id}`)
 
   if (!participant) {
     return res.status(404).json({ message: "Participant not found" })
@@ -36,18 +51,20 @@ export async function handleTwilioWebhook(req: Request, res: Response) {
     return res.status(404).json({ message: "Invitation not found" })
   }
 
-  const mappedResponse = message === RESPONSE_VALUES.YES || message === RESPONSE_VALUES.SELF || message === RESPONSE_VALUES.NO
-    ? message
+  const mappedResponse = [RESPONSE_VALUES.YES, RESPONSE_VALUES.SELF, RESPONSE_VALUES.NO].includes(message as any)
+    ? message as typeof RESPONSE_VALUES[keyof typeof RESPONSE_VALUES]
     : null
 
   if (!mappedResponse) {
     return res.status(400).json({ message: "Unsupported response" })
   }
 
+  const status = mapTwilioResponseToInvitationStatus(mappedResponse)
+
   await Invitation.updateOne(
     { _id: invitation._id },
     {
-      status: mappedResponse,
+      status,
       response: mappedResponse,
       responseDate: new Date(),
     },

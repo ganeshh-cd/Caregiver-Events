@@ -3,7 +3,11 @@ import { z } from "zod"
 import { Event } from "../models/Event.js"
 import { INVITATION_STATUS, Invitation } from "../models/Invitation.js"
 import { User } from "../models/User.js"
-import { normalizePhone, sendInvitationSms } from "../utils/twilio.js"
+import {
+  normalizePhone,
+  sendCancellationSms,
+  sendInvitationSms,
+} from "../utils/twilio.js"
 
 const createSchema = z.object({
   participantIds: z.array(z.string().min(1)).min(1, "Select at least one participant"),
@@ -109,6 +113,38 @@ export async function listInvitations(req: Request, res: Response) {
   })
 
   return res.json({ invitations: data })
+}
+
+export async function cancelInvitation(req: Request, res: Response) {
+  const { eventId, invitationId } = req.params
+
+  const invitation = await Invitation.findOne({ _id: invitationId, eventId }).populate(
+    "participantId",
+    "firstName middleName lastName countryCode phoneNumber",
+  )
+
+  if (!invitation) {
+    return res.status(404).json({ message: "Invitation not found" })
+  }
+
+  const participant = invitation.participantId as any
+  const participantName = [participant?.firstName, participant?.middleName, participant?.lastName]
+    .filter(Boolean)
+    .join(" ")
+    .trim()
+
+  await Invitation.deleteOne({ _id: invitationId, eventId })
+
+  const phone = [participant?.countryCode, participant?.phoneNumber].filter(Boolean).join(" ").trim()
+  if (phone) {
+    try {
+      await sendCancellationSms(`+${normalizePhone(phone)}`, participantName || "Participant", "this event")
+    } catch (err) {
+      console.error("[twilio] cancellation SMS failed", err)
+    }
+  }
+
+  return res.json({ message: "Invitation cancelled", invitationId })
 }
 
 export async function listInvitationResponses(req: Request, res: Response) {

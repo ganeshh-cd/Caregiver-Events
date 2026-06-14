@@ -108,6 +108,17 @@ export function useCreateInvitations(eventId: string) {
   })
 }
 
+export function useCancelInvitation(eventId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (invitationId: string) =>
+      (await api.delete(`/events/${eventId}/invitations/${invitationId}`)).data,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["invitations", eventId] })
+    },
+  })
+}
+
 export function useInvitationResponses(params: {
   eventId?: string
   response?: string

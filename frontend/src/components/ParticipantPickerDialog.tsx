@@ -6,7 +6,12 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormControl,
   InputAdornment,
+  InputLabel,
+  MenuItem,
+  Select,
+  Stack,
   TextField,
   Typography,
 } from "@mui/material"
@@ -45,6 +50,7 @@ export default function ParticipantPickerDialog({
 }: Props) {
   const [searchInput, setSearchInput] = useState("")
   const [search, setSearch] = useState("")
+  const [cityFilter, setCityFilter] = useState("")
   const [paginationModel, setPaginationModel] = useState<GridPaginationModel>({
     page: 0,
     pageSize: 10,
@@ -66,6 +72,7 @@ export default function ParticipantPickerDialog({
       setSelection([])
       setSearchInput("")
       setSearch("")
+      setCityFilter("")
       setPaginationModel({ page: 0, pageSize: 10 })
     }
   }, [open])
@@ -78,6 +85,14 @@ export default function ParticipantPickerDialog({
 
   const invitedSet = useMemo(() => new Set(alreadyInvitedIds), [alreadyInvitedIds])
   const rows = data?.participants ?? []
+  const filteredRows = useMemo(
+    () => (cityFilter ? rows.filter((row) => row.city === cityFilter) : rows),
+    [cityFilter, rows],
+  )
+  const availableCities = useMemo(
+    () => Array.from(new Set(rows.map((row) => row.city).filter(Boolean))).sort((a, b) => a.localeCompare(b)),
+    [rows],
+  )
   const rowCount = data?.total ?? 0
 
   const selectedIds = (selection as (string | number)[]).map(String)
@@ -91,24 +106,44 @@ export default function ParticipantPickerDialog({
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>Invite Participants</DialogTitle>
       <DialogContent>
-        <TextField
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          placeholder="Search by name, email, phone or city"
-          fullWidth
-          size="small"
-          sx={{ my: 1.5 }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" />
-              </InputAdornment>
-            ),
-          }}
-        />
+        <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} sx={{ mt: 0.5, mb: 1.5 }}>
+          <TextField
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search by name, email, phone or city"
+            fullWidth
+            size="small"
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <FormControl size="small" sx={{ minWidth: 180 }}>
+            <InputLabel id="city-filter-label">City</InputLabel>
+            <Select
+              labelId="city-filter-label"
+              label="City"
+              value={cityFilter}
+              onChange={(e) => setCityFilter(e.target.value)}
+            >
+              <MenuItem value="">All cities</MenuItem>
+              {availableCities.map((city) => (
+                <MenuItem key={city} value={city}>
+                  {city}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Stack>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+          Search participants and use the city filter to narrow the invite list before sending SMS.
+        </Typography>
         <Box sx={{ height: 440, width: "100%" }}>
           <DataGrid
-            rows={rows}
+            rows={filteredRows}
             columns={columns}
             getRowId={(row) => row.id}
             loading={isFetching}

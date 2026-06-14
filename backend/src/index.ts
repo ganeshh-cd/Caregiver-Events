@@ -8,6 +8,7 @@ const app = express()
 
 app.use(cors({ origin: env.CLIENT_ORIGIN === "*" ? true : env.CLIENT_ORIGIN.split(",") }))
 app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", service: "eem-backend", db: isDbConnected() ? "connected" : "connecting" })

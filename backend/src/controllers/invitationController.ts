@@ -2,6 +2,8 @@ import type { Request, Response } from "express"
 import { z } from "zod"
 import { Event } from "../models/Event.js"
 import { INVITATION_STATUS, Invitation } from "../models/Invitation.js"
+import { User } from "../models/User.js"
+import { normalizePhone, sendInvitationSms } from "../utils/twilio.js"
 
 const createSchema = z.object({
   participantIds: z.array(z.string().min(1)).min(1, "Select at least one participant"),
@@ -41,6 +43,36 @@ export async function createInvitations(req: Request, res: Response) {
     created = err?.result?.insertedCount ?? err?.insertedDocs?.length ?? 0
   }
 
+  const participants = await User.find({ _id: { $in: parsed.data.participantIds } })
+    .select("_id firstName middleName lastName countryCode phoneNumber")
+    .lean()
+
+  for (const participant of participants) {
+    const phone = [participant.countryCode, participant.phoneNumber].filter(Boolean).join(" ").trim()
+    if (!phone) continue
+
+    try {
+      await sendInvitationSms(
+        `+${normalizePhone(phone)}`,
+        [participant.firstName, participant.middleName, participant.lastName]
+          .filter(Boolean)
+          .join(" ")
+          .trim() || "Participant",
+        event.eventName,
+        new Date(event.eventDate).toLocaleDateString("en-US", {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        }),
+        event.location || "TBD",
+        [event.startTime, event.endTime].filter(Boolean).join(" - ") || "TBD",
+      )
+    } catch (err) {
+      console.error("[twilio] invitation SMS failed", err)
+    }
+  }
+
   const total = await Invitation.countDocuments({ eventId })
   return res.status(201).json({
     message: `${created} invitation(s) created`,
@@ -63,6 +95,8 @@ export async function listInvitations(req: Request, res: Response) {
     return {
       id: String(inv._id),
       status: inv.status,
+      response: inv.response ?? null,
+      responseDate: inv.responseDate ?? null,
       participant: {
         id: String(p._id ?? ""),
         name:
@@ -73,6 +107,56 @@ export async function listInvitations(req: Request, res: Response) {
       },
     }
   })
+
+  return res.json({ invitations: data })
+}
+
+export async function listInvitationResponses(req: Request, res: Response) {
+  const { eventId, response, search } = req.query as {
+    eventId?: string
+    response?: string
+    search?: string
+  }
+
+  const filter: Record<string, any> = {}
+  if (eventId) filter.eventId = eventId
+  if (response) filter.response = response
+
+  const query = Invitation.find(filter)
+    .populate("participantId", "firstName middleName lastName email countryCode phoneNumber")
+    .populate("eventId", "eventName eventDate")
+    .sort({ responseDate: -1, createdAt: -1 })
+    .lean()
+
+  const invitations = await query
+
+  const data = invitations
+    .filter((inv: any) => {
+      if (!search) return true
+      const term = search.toLowerCase()
+      const participant = inv.participantId ?? {}
+      const event = inv.eventId ?? {}
+      return [participant.firstName, participant.middleName, participant.lastName, participant.email, participant.phoneNumber, event.eventName]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(term)
+    })
+    .map((inv: any) => {
+      const participant = inv.participantId ?? {}
+      const event = inv.eventId ?? {}
+      return {
+        id: String(inv._id),
+        participantName: [participant.firstName, participant.middleName, participant.lastName]
+          .filter(Boolean)
+          .join(" ")
+          .trim(),
+        phone: [participant.countryCode, participant.phoneNumber].filter(Boolean).join(" ").trim(),
+        eventName: event.eventName ?? "",
+        response: inv.response ?? "PENDING",
+        responseDate: inv.responseDate ?? null,
+      }
+    })
 
   return res.json({ invitations: data })
 }

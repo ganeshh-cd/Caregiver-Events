@@ -4,11 +4,11 @@
   "version": "1.0.0",
   "description": "Phase 1 — Elderly Event Management (Express + MongoDB backend, React + Vite + MUI frontend)",
   "scripts": {
-    "dev": "concurrently -n backend,frontend -c blue,green \"pnpm --dir backend dev\" \"pnpm --dir frontend dev\"",
-    "dev:backend": "pnpm --dir backend dev",
-    "dev:frontend": "pnpm --dir frontend dev",
-    "seed": "pnpm --dir backend seed",
-    "build": "pnpm --dir backend build && pnpm --dir frontend build"
+    "dev": "concurrently -n backend,frontend -c blue,green \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "seed": "npm run seed --prefix backend",
+    "build": "npm run build --prefix backend && npm run build --prefix frontend"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

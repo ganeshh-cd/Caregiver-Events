@@ -31,11 +31,17 @@ import { formatDate } from "../utils/format"
 
 const statusColors: Record<string, string> = {
   PENDING: "#b45309",
+  YES: "#15803d",
+  SELF: "#2563eb",
+  NO: "#b91c1c",
   ACCEPTED: "#15803d",
   DECLINED: "#b91c1c",
 }
 const statusBg: Record<string, string> = {
   PENDING: "#fef3c7",
+  YES: "#dcfce7",
+  SELF: "#dbeafe",
+  NO: "#fee2e2",
   ACCEPTED: "#dcfce7",
   DECLINED: "#fee2e2",
 }
@@ -66,6 +72,17 @@ export default function EventDetailPage() {
   const [inviteError, setInviteError] = useState<string | null>(null)
 
   const invitedIds = (invitations ?? []).map((i) => i.participant.id)
+  const invitationCounts = (invitations ?? []).reduce(
+    (acc, invitation) => {
+      const key = invitation.status === "ACCEPTED" ? "YES" : invitation.status
+      if (key === "PENDING") acc.pending += 1
+      if (key === "YES") acc.yes += 1
+      if (key === "SELF") acc.self += 1
+      if (key === "NO") acc.no += 1
+      return acc
+    },
+    { pending: 0, yes: 0, self: 0, no: 0 },
+  )
 
   async function handleInvite(participantIds: string[]) {
     setInviteError(null)
@@ -190,7 +207,7 @@ export default function EventDetailPage() {
                   startIcon={<GroupAddIcon />}
                   onClick={() => setPickerOpen(true)}
                 >
-                  Invite
+                  Invite Participants
                 </Button>
               </Stack>
 
@@ -199,6 +216,22 @@ export default function EventDetailPage() {
                   {inviteError}
                 </Alert>
               )}
+
+              <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap mb={2}>
+                {[
+                  { label: "Pending", value: invitationCounts.pending },
+                  { label: "Yes", value: invitationCounts.yes },
+                  { label: "Self", value: invitationCounts.self },
+                  { label: "No", value: invitationCounts.no },
+                ].map((item) => (
+                  <Chip
+                    key={item.label}
+                    label={`${item.label}: ${item.value}`}
+                    size="small"
+                    sx={{ bgcolor: "#eff6ff", color: "#1d4ed8", border: "1px solid #bfdbfe" }}
+                  />
+                ))}
+              </Stack>
 
               {loadingInvites ? (
                 <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
@@ -238,7 +271,7 @@ export default function EventDetailPage() {
                 <Box sx={{ textAlign: "center", py: 5 }}>
                   <PeopleIcon sx={{ fontSize: 44, color: "#cbd5e1", mb: 1 }} />
                   <Typography color="text.secondary">
-                    No participants invited yet. Click &quot;Invite&quot; to add some.
+                    No participants invited yet. Click “Invite Participants” to select people and send SMS invitations.
                   </Typography>
                 </Box>
               )}

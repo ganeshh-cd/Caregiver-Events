@@ -68,7 +68,7 @@ export default function LoginPage() {
               Welcome back
             </Typography>
             <Typography variant="body2" color="text.secondary" textAlign="center">
-              Sign in to the Elderly Event Management admin portal
+              Sign in to the Caregiver PACE admin portal
             </Typography>
           </Stack>
 
